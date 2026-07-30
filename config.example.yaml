@@ -1,0 +1,43 @@
+# 使用示例：搜索 2024-2025 年胸片报告生成论文（要求开源）
+# 工具会持续搜索直到找到 10 篇全部满足条件的论文
+
+search:
+  keywords:
+    - "chest X-ray report generation"
+    - "radiology report generation"
+  year_range: [2024, 2025]
+  max_papers: 10
+  max_search_pages: 5
+  sources: ["semantic_scholar", "dblp", "arxiv"]
+  expand_synonyms: false
+
+venue:
+  min_ccf_level: null
+  include_patterns: []
+  exclude_patterns: []
+  allow_arxiv_only: true
+
+modules:
+  include: []
+  exclude: []
+  match_mode: "semantic"
+
+datasets:
+  include: []
+  exclude: []
+
+code:
+  require_open_source: true
+  min_stars: 0
+  platforms: ["github", "gitlab"]
+  min_code_files: 1
+
+output:
+  formats: ["markdown", "csv", "bibtex"]
+  path: "./output"
+  include_reasoning: true
+
+cache:
+  enabled: true
+  path: "./cache"
+  ttl_hours: 168

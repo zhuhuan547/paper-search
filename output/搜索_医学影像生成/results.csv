@@ -1,0 +1,9 @@
+Title,Authors,Venue,Date,Citations,Focus
+"Dynamic Graph Enhanced Contrastive Learning for Chest X-Ray Report Generation","Mingjie Li, Bingqian Lin, Zicong Chen, Haokun Lin, Xiaodan Liang, Xiaojun Chang",CVPR,2023-03-18,230,Chest X-Ray Report Generation
+"A Vision-Language Foundation Model for the Generation of Realistic Chest X-Ray Images","Christian Bluethgen, Pierre J. Chambon, et al., Akshay S. Chaudhari",Nature Biomedical Engineering,2024-08-26,147,Chest X-Ray Generation / Diffusion
+"CBCT-Based Synthetic CT Image Generation Using Conditional Denoising Diffusion Probabilistic Model","Junbo Peng, Richard L. J. Qiu, et al., Xiaofeng Yang",Medical Physics,2023-03-05,131,CT Generation / Diffusion
+"Fast-DDPM: Fast Denoising Diffusion Probabilistic Models for Medical Image-to-Image Generation","Hongxu Jiang, M. Imran, et al., W. Shao",IEEE JBHI,2024-05-23,99,Fast Medical Image Generation
+"Anatomically-Controllable Medical Image Generation with Segmentation-Guided Diffusion Models","Nicholas Konz, Yuwen Chen, Haoyu Dong, Maciej Mazurowski",MICCAI,2024-02-07,99,Controllable Medical Image Generation
+"Multimodal Image-Text Matching Improves Retrieval-based Chest X-Ray Report Generation (X-REM)","Jaehwan Jeong, Katherine Tian, et al., Pranav Rajpurkar",MIDL,2023-03-29,92,Chest X-Ray Report Generation
+"WDM: 3D Wavelet Diffusion Models for High-Resolution Medical Image Synthesis","Paul Friedrich, Julia Wolleb, Florentin Bieder, Alicia Durrer, Philippe C. Cattin",MICCAI,2024-02-29,79,High-Resolution Medical Image Synthesis
+"Cascaded Latent Diffusion Models for High-Resolution Chest X-Ray Synthesis (Cheff)","Tobias Weber, Michael Ingrisch, Bernd Bischl, David Rügamer",PAKDD,2023-03-20,49,Chest X-Ray Generation / Diffusion

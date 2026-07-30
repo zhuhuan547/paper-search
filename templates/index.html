@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学术论文多源搜索</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #fff;
+    --text: #1d1d1f;
+    --sub: #6e6e73;
+    --border: #d2d2d7;
+    --accent: #0071e3;
+    --accent-hover: #0077ed;
+    --green: #30b158;
+    --red: #ff3b30;
+    --orange: #ff9500;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,.06);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+  /* Header */
+  .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 20px 40px; display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -.3px; }
+  .header .badge { font-size: 11px; background: var(--accent); color: #fff; padding: 3px 8px; border-radius: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+
+  /* Layout */
+  .container { max-width: 1400px; margin: 0 auto; padding: 32px 40px; display: grid; grid-template-columns: 420px 1fr; gap: 32px; align-items: start; }
+
+  /* Filter Panel */
+  .filter-panel { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; position: sticky; top: 24px; }
+  .filter-panel h2 { font-size: 17px; font-weight: 600; margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
+  .filter-group { margin-bottom: 20px; }
+  .filter-group label { display: block; font-size: 13px; font-weight: 600; color: var(--sub); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .filter-group input, .filter-group select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; transition: border-color .15s; background: #fff; }
+  .filter-group input:focus, .filter-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,113,227,.12); }
+  .filter-group textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: monospace; resize: vertical; min-height: 50px; }
+  .filter-group textarea:focus { outline: none; border-color: var(--accent); }
+  .filter-group .hint { font-size: 11px; color: var(--sub); margin-top: 3px; }
+  .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tag-input { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; min-height: 38px; align-items: center; cursor: text; }
+  .tag-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,113,227,.12); }
+  .tag { display: inline-flex; align-items: center; gap: 4px; background: #e8f0fe; color: #1967d2; padding: 2px 10px; border-radius: 14px; font-size: 12px; font-weight: 500; }
+  .tag .remove { cursor: pointer; font-weight: 700; font-size: 16px; line-height: 1; opacity: .6; transition: .15s; }
+  .tag .remove:hover { opacity: 1; }
+  .tag-input input { border: none; outline: none; flex: 1; min-width: 80px; font-size: 13px; padding: 4px 2px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; width: 100%; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,113,227,.3); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-secondary { background: #f5f5f7; color: var(--text); border: 1px solid var(--border); margin-top: 8px; }
+
+  /* Results Panel */
+  .results-panel { min-height: 400px; }
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .results-header h2 { font-size: 17px; font-weight: 600; }
+  .results-actions { display: flex; gap: 8px; }
+  .results-actions button { padding: 7px 14px; border: 1px solid var(--border); border-radius: 7px; background: #fff; font-size: 12px; cursor: pointer; font-weight: 500; transition: .15s; }
+  .results-actions button:hover { background: #f5f5f7; }
+
+  .stats { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat { background: var(--card); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); flex: 1; min-width: 120px; text-align: center; }
+  .stat .num { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+  .stat .num.green { color: var(--green); }
+  .stat .num.red { color: var(--red); }
+  .stat .lbl { font-size: 12px; color: var(--sub); margin-top: 2px; text-transform: uppercase; letter-spacing: .3px; }
+
+  /* Paper Card */
+  .paper-card { background: var(--card); border-radius: var(--radius); padding: 24px 28px; margin-bottom: 16px; box-shadow: var(--shadow); transition: transform .15s, box-shadow .15s; }
+  .paper-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
+  .paper-card .rank { float: right; font-size: 40px; font-weight: 800; color: #e8e8ed; line-height: 1; letter-spacing: -2px; }
+  .paper-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; padding-right: 50px; line-height: 1.4; }
+  .paper-card h3 a { color: var(--text); text-decoration: none; }
+  .paper-card h3 a:hover { color: var(--accent); }
+  .paper-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--sub); margin-bottom: 10px; }
+  .paper-meta span { display: inline-flex; align-items: center; gap: 4px; }
+  .paper-meta .badge-sm { font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+  .badge-ccf-a { background: #ffe5e5; color: #c00; }
+  .badge-ccf-b { background: #fff3e0; color: #e65100; }
+  .badge-ccf-c { background: #fffde7; color: #f57f17; }
+  .badge-arxiv { background: #e8f5e9; color: #2e7d32; }
+  .paper-abstract { font-size: 13px; color: #555; line-height: 1.7; margin: 10px 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .paper-abstract.expanded { -webkit-line-clamp: unset; }
+  .paper-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .paper-tag { font-size: 11px; padding: 3px 10px; border-radius: 6px; font-weight: 500; background: #f0f0f5; color: #555; }
+  .paper-tag.code { background: #e8f5e9; color: #2e7d32; }
+  .paper-links { display: flex; gap: 10px; margin-top: 12px; }
+  .paper-links a { font-size: 12px; font-weight: 600; text-decoration: none; padding: 6px 14px; border-radius: 7px; transition: .15s; }
+  .paper-links .link-pdf { background: #fce4ec; color: #c62828; }
+  .paper-links .link-arxiv { background: #e8f5e9; color: #2e7d32; }
+  .paper-links .link-code { background: #e3f2fd; color: #1565c0; }
+  .paper-links .link-doi { background: #f3e5f5; color: #7b1fa2; }
+
+  /* Loading */
+  .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; gap: 16px; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading p { color: var(--sub); font-size: 14px; }
+
+  .empty { text-align: center; padding: 80px 0; color: var(--sub); }
+  .empty .icon { font-size: 48px; margin-bottom: 12px; }
+  .toast { position: fixed; top: 20px; right: 20px; background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 999; opacity: 0; transform: translateY(-10px); transition: .3s; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: var(--red); }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .container { grid-template-columns: 1fr; }
+    .filter-panel { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<div id="warning-banner" style="display:none;background:#ff3b30;color:#fff;text-align:center;padding:10px;font-size:14px;font-weight:600">
+  ⚠️ 请不要直接打开 HTML 文件！请在浏览器地址栏输入 <code style="background:rgba(255,255,255,.2);padding:2px 8px;border-radius:4px">http://127.0.0.1:5000</code> 访问
+</div>
+<div class="header">
+  <h1>📄 学术论文多源搜索</h1>
+  <span class="badge">7-Step Pipeline</span>
+</div>
+
+<div class="container">
+  <!-- Filter Panel -->
+  <aside class="filter-panel">
+    <h2>🔍 筛选条件</h2>
+
+    <div class="filter-group">
+      <label>搜索关键词（一行一个）</label>
+      <textarea id="keywords" placeholder="chest X-ray report generation&#10;radiology report generation"></textarea>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>起始年份</label>
+        <input type="number" id="year-start" value="2024" min="2010" max="2026">
+      </div>
+      <div class="filter-group">
+        <label>结束年份</label>
+        <input type="number" id="year-end" value="2025" min="2010" max="2026">
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>目标论文数</label>
+        <input type="number" id="max-papers" value="10" min="1" max="50">
+      </div>
+      <div class="filter-group">
+        <label>最大翻页数/源</label>
+        <input type="number" id="max-pages" value="5" min="1" max="10">
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label>最低 CCF 等级</label>
+      <select id="ccf-level">
+        <option value="">不限</option>
+        <option value="A">CCF-A</option>
+        <option value="B">CCF-B</option>
+        <option value="C">CCF-C</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>包含 arXiv 预印本</label>
+      <select id="allow-arxiv">
+        <option value="yes" selected>是</option>
+        <option value="no">否（仅正式发表）</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>必须包含的技术标签（回车添加）</label>
+      <div class="tag-input" id="tag-include-modules" onclick="this.querySelector('input').focus()">
+        <input placeholder="输入后按回车…" onkeydown="addTag(event, 'tag-include-modules')">
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label>必须排除的技术标签（回车添加）</label>
+      <div class="tag-input" id="tag-exclude-modules" onclick="this.querySelector('input').focus()">
+        <input placeholder="输入后按回车…" onkeydown="addTag(event, 'tag-exclude-modules')">
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label>必须使用的数据集（回车添加）</label>
+      <div class="tag-input" id="tag-include-datasets" onclick="this.querySelector('input').focus()">
+        <input placeholder="输入后按回车…" onkeydown="addTag(event, 'tag-include-datasets')">
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>要求代码开源</label>
+        <select id="require-code">
+          <option value="yes" selected>是</option>
+          <option value="no">否</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>最低 Star 数</label>
+        <input type="number" id="min-stars" value="0" min="0">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-search" onclick="doSearch()">
+      🔍 开始搜索
+    </button>
+    <button class="btn btn-secondary" onclick="loadCache()">
+      📦 加载上次缓存结果
+    </button>
+  </aside>
+
+  <!-- Results Panel -->
+  <main class="results-panel" id="results-panel">
+    <div class="results-header">
+      <h2 id="results-title">📋 搜索结果</h2>
+      <div class="results-actions" id="results-actions" style="display:none">
+        <button onclick="exportResults('markdown')">📝 导出 Markdown</button>
+        <button onclick="exportResults('csv')">📊 导出 CSV</button>
+        <button onclick="exportResults('bibtex')">📚 导出 BibTeX</button>
+      </div>
+    </div>
+    <div id="results-body">
+      <div class="empty">
+        <div class="icon">🔍</div>
+        <p>设置筛选条件后点击"开始搜索"</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== Tag Input ==========
+function addTag(event, containerId) {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  const input = event.target;
+  const val = input.value.trim();
+  if (!val) return;
+  const container = document.getElementById(containerId);
+  const tag = document.createElement('span');
+  tag.className = 'tag';
+  tag.innerHTML = `${val}<span class="remove" onclick="this.parentElement.remove()">×</span>`;
+  container.insertBefore(tag, input);
+  input.value = '';
+}
+
+function getTags(containerId) {
+  const container = document.getElementById(containerId);
+  return [...container.querySelectorAll('.tag')].map(t => t.textContent.replace('×', '').trim());
+}
+
+// ========== Toast ==========
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (isError ? 'error' : '') + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ========== Search ==========
+async function doSearch() {
+  // 检测是否通过 file:// 协议打开
+  if (location.protocol === 'file:') {
+    showToast('❌ 请不要直接打开 HTML 文件！请在浏览器输入 http://127.0.0.1:5000 访问', true);
+    return;
+  }
+  const btn = document.getElementById('btn-search');
+  btn.disabled = true;
+  btn.textContent = '⏳ 搜索中…';
+  document.getElementById('results-body').innerHTML = '<div class="loading"><div class="spinner"></div><p>正在多源搜索，请稍候…</p></div>';
+
+  const config = {
+    search: {
+      keywords: document.getElementById('keywords').value.split('\n').map(s => s.trim()).filter(Boolean),
+      year_range: [parseInt(document.getElementById('year-start').value), parseInt(document.getElementById('year-end').value)],
+      max_papers: parseInt(document.getElementById('max-papers').value),
+      max_search_pages: parseInt(document.getElementById('max-pages').value),
+      sources: ["semantic_scholar", "arxiv"],
+      expand_synonyms: false,
+    },
+    venue: {
+      min_ccf_level: document.getElementById('ccf-level').value || null,
+      include_patterns: [],
+      exclude_patterns: [],
+      allow_arxiv_only: document.getElementById('allow-arxiv').value === 'yes',
+    },
+    modules: {
+      include: getTags('tag-include-modules'),
+      exclude: getTags('tag-exclude-modules'),
+      match_mode: "keyword",
+    },
+    datasets: {
+      include: getTags('tag-include-datasets'),
+      exclude: [],
+    },
+    code: {
+      require_open_source: document.getElementById('require-code').value === 'yes',
+      min_stars: parseInt(document.getElementById('min-stars').value),
+      platforms: ["github", "gitlab"],
+      min_code_files: 1,
+    },
+  };
+
+  try {
+    const resp = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    const data = await resp.json();
+    if (data.error) { showToast(data.error, true); return; }
+    renderResults(data);
+    showToast(data.message);
+  } catch (e) {
+    showToast('搜索请求失败：' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 开始搜索';
+  }
+}
+
+// ========== Render ==========
+function renderResults(data) {
+  document.getElementById('results-title').textContent = `📋 搜索结果（${data.count} 篇全部满足条件）`;
+  document.getElementById('results-actions').style.display = 'flex';
+
+  const papers = data.papers || [];
+  let html = `<div class="stats">
+    <div class="stat"><div class="num green">${data.count}</div><div class="lbl">全部满足</div></div>
+    <div class="stat"><div class="num">${data.target}</div><div class="lbl">目标篇数</div></div>
+  </div>`;
+
+  if (papers.length === 0) {
+    html += '<div class="empty"><div class="icon">😕</div><p>未找到满足所有条件的论文，请放宽筛选条件后重试</p></div>';
+  } else {
+    papers.forEach(p => {
+      const rank = p.rank || 0;
+      const ccf = ccfLevel(p.venue || '');
+      const ccfBadge = ccf ? `<span class="badge-sm badge-ccf-${ccf.toLowerCase()}">CCF-${ccf}</span>` : '';
+      const codeBadge = p.has_code ? `<span class="badge-sm" style="background:#e8f5e9;color:#2e7d32;">⭐${p.stars||0}</span>` : '';
+      const arxivBadge = p.arxiv_id ? `<span class="badge-sm badge-arxiv">arXiv</span>` : '';
+
+      const tags = (p.tech_modules || []).map(m => `<span class="paper-tag">${m}</span>`).join('');
+      const dsTags = (p.datasets_used || []).map(d => `<span class="paper-tag">📊 ${d}</span>`).join('');
+
+      const pdfLink = p.pdf_url ? `<a class="link-pdf" href="${p.pdf_url}" target="_blank">📄 PDF</a>` : '';
+      const arxivLink = p.arxiv_id ? `<a class="link-arxiv" href="https://arxiv.org/abs/${p.arxiv_id}" target="_blank">📘 arXiv</a>` : '';
+      const codeLink = p.repo_url ? `<a class="link-code" href="${p.repo_url}" target="_blank">💻 Code ⭐${p.stars||0}</a>` : '';
+      const doiLink = p.doi ? `<a class="link-doi" href="https://doi.org/${p.doi}" target="_blank">🔗 DOI</a>` : '';
+
+      html += `
+      <div class="paper-card">
+        <div class="rank">#${rank}</div>
+        <h3><a href="${p.url || '#'}" target="_blank">${p.title}</a></h3>
+        <div class="paper-meta">
+          <span>👤 ${(p.authors||[]).slice(0,3).join(', ')}${(p.authors||[]).length>3?' et al.':''}</span>
+          <span>📅 ${p.year}</span>
+          <span>📰 ${p.venue_full || p.venue || '—'}</span>
+          <span>📊 引用 ${p.citations||0}</span>
+          ${ccfBadge} ${arxivBadge} ${codeBadge}
+        </div>
+        <div class="paper-abstract" onclick="this.classList.toggle('expanded')">${p.abstract || '暂无摘要'}</div>
+        <div class="paper-tags">${tags} ${dsTags}</div>
+        <div class="paper-links">${pdfLink} ${arxivLink} ${codeLink} ${doiLink}</div>
+      </div>`;
+    });
+  }
+
+  document.getElementById('results-body').innerHTML = html;
+}
+
+function ccfLevel(venue) {
+  const v = (venue||'').toUpperCase();
+  if (/CVPR|ICCV|ECCV|NeurIPS|ICML|AAAI|IJCAI|ACL|EMNLP|NAACL|SIGIR|WWW|SIGMOD|VLDB/.test(v)) return 'A';
+  if (/MICCAI|IPMI|COLING|EACL|CoNLL|CIKM|WSDM|ICDM|ICSE|FSE|ASE/.test(v)) return 'B';
+  if (/LREC|AMIA|BIBM|EMBC|ICPR|ICASSP|ICME|ICMR/.test(v)) return 'C';
+  return null;
+}
+
+// ========== Export ==========
+async function exportResults(fmt) {
+  const cards = document.querySelectorAll('.paper-card');
+  if (!cards.length) return;
+
+  const papers = [...cards].map(card => {
+    const title = card.querySelector('h3')?.textContent || '';
+    const metaSpans = card.querySelectorAll('.paper-meta span');
+    const tags = [...card.querySelectorAll('.paper-tag:not([style])')].map(t => t.textContent);
+    const dsTags = [...card.querySelectorAll('.paper-tag')].filter(t => t.textContent.startsWith('📊')).map(t => t.textContent.replace('📊 ', ''));
+    const links = [...card.querySelectorAll('.paper-links a')];
+    const arxivLink = links.find(a => a.classList.contains('link-arxiv'));
+    const codeLink = links.find(a => a.classList.contains('link-code'));
+    const doiLink = links.find(a => a.classList.contains('link-doi'));
+
+    return {
+      title,
+      authors: metaSpans[0]?.textContent?.replace('👤 ','')?.split(', ') || [],
+      year: parseInt(metaSpans[1]?.textContent?.replace('📅 ','') || '0'),
+      venue: metaSpans[2]?.textContent?.replace('📰 ','') || '',
+      citations: parseInt(metaSpans[3]?.textContent?.replace('📊 引用 ','') || '0'),
+      arxiv_id: arxivLink?.href?.match(/arxiv\.org\/abs\/(.+)/)?.[1] || null,
+      doi: doiLink?.href?.match(/doi\.org\/(.+)/)?.[1] || null,
+      repo_url: codeLink?.href || null,
+      stars: parseInt(codeLink?.textContent?.match(/⭐(\d+)/)?.[1] || '0'),
+      tech_modules: tags,
+      datasets_used: dsTags,
+      has_code: !!codeLink,
+    };
+  });
+
+  const resp = await fetch('/api/export', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ papers, format: fmt }),
+  });
+  const data = await resp.json();
+  if (data.content) {
+    const blob = new Blob([data.content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const ext = { markdown: 'md', csv: 'csv', bibtex: 'bib' }[fmt];
+    const a = document.createElement('a');
+    a.href = url; a.download = `results.${ext}`; a.click();
+    URL.revokeObjectURL(url);
+    showToast(`已导出 results.${ext}`);
+  }
+}
+
+// ========== Cache ==========
+async function loadCache() {
+  if (location.protocol === 'file:') {
+    showToast('❌ 请不要直接打开 HTML 文件！请在浏览器输入 http://127.0.0.1:5000 访问', true);
+    return;
+  }
+  try {
+    const resp = await fetch('/api/cache');
+    const data = await resp.json();
+    if (data.error) { showToast(data.error, true); return; }
+    renderResults(data);
+    showToast(data.message);
+  } catch(e) {
+    showToast('加载缓存失败：' + e.message, true);
+  }
+}
+
+// ========== Init ==========
+if (location.protocol === 'file:') {
+  document.getElementById('warning-banner').style.display = 'block';
+}
+document.getElementById('keywords').value = 'chest X-ray report generation\nradiology report generation';
+</script>
+</body>
+</html>

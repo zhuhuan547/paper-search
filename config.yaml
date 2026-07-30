@@ -1,0 +1,52 @@
+search:
+  keywords:
+  - federated learning privacy protection
+  - federated learning differential privacy
+  - federated learning homomorphic encryption
+  - federated learning Byzantine attack defense
+  - federated learning poisoning attack detection
+  - federated learning security defense
+  year_range:
+  - 2021
+  - 2026
+  max_papers: 15
+  max_search_pages: 5
+  sources:
+  - semantic_scholar
+  - dblp
+  - arxiv
+  expand_synonyms: true
+venue:
+  min_ccf_level: null
+  include_patterns: []
+  exclude_patterns: []
+  allow_arxiv_only: true
+modules:
+  include:
+  - differential privacy
+  - homomorphic encryption
+  - Byzantine robustness
+  - poisoning defense
+  exclude: []
+  match_mode: semantic
+datasets:
+  include: []
+  exclude: []
+code:
+  require_open_source: true
+  min_stars: 0
+  platforms:
+  - github
+  - gitlab
+  min_code_files: 1
+output:
+  formats:
+  - markdown
+  - csv
+  - bibtex
+  path: ./output/搜索_联邦学习隐私安全
+  include_reasoning: true
+cache:
+  enabled: true
+  path: ./cache
+  ttl_hours: 168

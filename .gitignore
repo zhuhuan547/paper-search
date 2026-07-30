@@ -1,0 +1,26 @@
+# Playwright MCP 浏览器快照和日志
+.playwright-mcp/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 搜索缓存
+cache/
+
+# 旧输出
+output/任务_*/
+output2/
+
+# 配置文件（含 API key 等敏感信息）
+config.yaml
+
+# Word 文档
+*.docx
+
+# 截图
+*.png
+
+# 系统文件
+.DS_Store
+Thumbs.db

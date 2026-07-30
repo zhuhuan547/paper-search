@@ -1,0 +1,16 @@
+Title,Authors,Venue,Year,Citations,Focus
+"A Robust Privacy-Preserving Federated Learning Model Against Model Poisoning Attacks","Abbas Yazdinejad, Ali Dehghantanha, Hadis Karimipour, Gautam Srivastava, Reza Parizi",IEEE TIFS,2024,329,Privacy-Preserving + Poisoning Defense
+"ShieldFL: Mitigating Model Poisoning Attacks in Privacy-Preserving Federated Learning","Zhuo Ma, Jianfeng Ma, Yinbin Miao, Yingjiu Li, Robert Deng",IEEE TIFS,2022,276,Homomorphic Encryption + Poisoning Defense
+"Privacy-Preserving Byzantine-Robust Federated Learning via Blockchain Systems","Yinbin Miao, Ziteng Liu, Hongwei Li, K.-K. R. Choo, Robert Deng",IEEE TIFS,2022,257,Byzantine Robustness + Blockchain + HE
+"Clustered Federated Learning With Adaptive Local Differential Privacy on Heterogeneous IoT Data","Zaobo He, Lintao Wang, Zhipeng Cai",IEEE IoT-J,2024,118,Differential Privacy
+"Privacy-Preserving and Byzantine-Robust Federated Learning","Caiqin Dong, Jian Weng, et al., Shui Yu",IEEE TDSC,2024,79,Byzantine Robustness + Privacy
+"Federated Learning with Differential Privacy for Breast Cancer Diagnosis","Shubhi Shukla, S. Rajkumar, et al.",Scientific Reports,2025,79,Differential Privacy + Medical
+"Model Poisoning Attack in Differential Privacy-Based Federated Learning","Ming-How Yang, Hang Cheng, Fei Chen, Ximeng Liu, Mei Wang, Xibin Li",Information Sciences,2023,65,DP + Poisoning Attack
+"DeSMP: Differential Privacy-exploited Stealthy Model Poisoning Attacks in Federated Learning","Md Tamjid Hossain, Shafkat Islam, Shahriar Badsha, Haoting Shen",IEEE MSN,2021,54,DP-exploited Poisoning + RL Defense
+"APDPFL: Anti-Poisoning Attack Decentralized Privacy Enhanced Federated Learning Scheme","Xinyan Li, Huimin Zhao, Junjie Xu, Guangtian Zhu, Wu Deng",IEEE TWC,2024,53,Anti-Poisoning + Decentralized
+"Efficient Federated Learning Privacy Preservation Method with Heterogeneous Differential Privacy","Jie Ling, Junchang Zheng, Jiahui Chen",Computers & Security,2024,49,Heterogeneous DP
+"RFed: Robustness-Enhanced Privacy-Preserving Federated Learning Against Poisoning Attack","Yinbin Miao, Xinru Yan, et al., Robert H. Deng",IEEE TIFS,2024,47,Privacy-Preserving + Poisoning Defense
+"AgrEvader: Poisoning Membership Inference against Byzantine-robust Federated Learning","Yanjun Zhang, Guangdong Bai, et al., Joseph K. Liu",WWW,2023,39,Byzantine-robust + Poisoning
+"Does Differential Privacy Really Protect Federated Learning From Gradient Leakage Attacks?","Jiahui Hu, Jiacheng Du, et al., Kui Ren",IEEE TMC,2024,37,DP + Gradient Leakage
+"Cross-silo Federated Learning with Record-level Personalized Differential Privacy","Junxu Liu, Jian Lou, Li Xiong, Jinfei Liu, Xiaofeng Meng",ACM CCS,2024,36,Personalized DP (CCS)
+"Efficiently Achieving Privacy Preservation and Poisoning Attack Resistance in Federated Learning","Xueyang Li, Xue Yang, Zhengchun Zhou, Rongxing Lu",IEEE TIFS,2024,36,Privacy + Poisoning Resistance
