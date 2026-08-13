@@ -1,6 +1,6 @@
 ---
 name: paper-search
-description: 多源学术论文搜索 — 持续搜索直到凑满 N 篇全部满足所有筛选条件的论文，经初筛→代码验证→LLM深度分析，输出结构化结果。
+description: 多源学术论文搜索 — 持续搜索直到凑满 N 篇全部满足所有筛选条件的论文，初筛→代码验证→模块/数据集匹配（LLM）逐篇在循环内执行，输出结构化结果。
 ---
 
 # 学术论文多源搜索工具
@@ -10,7 +10,8 @@ description: 多源学术论文搜索 — 持续搜索直到凑满 N 篇全部�
 ## 核心原则
 
 > `search.max_papers` 的含义是：**最终输出 N 篇全部通过所有筛选的论文**，不是"搜索 N 篇然后标记哪些通过"。
-> 每篇论文必须同时满足：年份 + 期刊等级 + 关键词 + 模块匹配 + 数据集匹配 + 代码开源要求，才计入最终结果。
+> 每篇论文必须同时满足：年份 + 期刊等级 + 关键词 + 代码开源要求 + 模块匹配 + 数据集匹配，才计入最终结果。
+> 所有筛选（含 LLM 的模块/数据集匹配）都在**搜索循环内逐篇立即执行**：通过才计入 `qualified`，不通过直接丢弃。
 > 如果当前搜索结果中通过数不足 N，则自动翻页/切换数据源继续搜索，直到凑满 N 篇或所有数据源穷尽。
 
 ---
@@ -20,13 +21,13 @@ description: 多源学术论文搜索 — 持续搜索直到凑满 N 篇全部�
 ```
 config.yaml  →  Step1 读取配置
                  Step2 浏览器就绪
-                 ┌──────────────────────────────────────────┐
-                 │  搜索循环（直到凑满 max_papers 或穷尽）    │
-                 │  Step3 搜索一页 → Step4 初筛 → Step5 验码 │
-                 │  不足则翻页 / 切换数据源 / 扩展搜索词      │
-                 └──────────────────────────────────────────┘
-                 Step6 LLM 深度分析（仅分析全部通过的论文）
-                 Step7 结构化输出（只有通过的论文）
+                 ┌──────────────────────────────────────────────────────┐
+                 │  搜索循环（直到凑满 max_papers 或穷尽）                │
+                 │  Step3 搜索一页 → Step4 初筛 → Step5 验码             │
+                 │                 → Step6 模块/数据集匹配（LLM，循环内） │
+                 │  任何一步不通过立即丢弃；不足则翻页 / 切换源 / 扩展词  │
+                 └──────────────────────────────────────────────────────┘
+                 Step7 结构化输出（只有全部通过的论文）
 ```
 
 ---
@@ -36,9 +37,9 @@ config.yaml  →  Step1 读取配置
 1. 读取项目根目录下的 `config.yaml`
 2. 解析所有筛选字段（同原版）
 3. 关键字段语义：
-   - `search.max_papers`：**最终必须输出 N 篇全部满足条件的论文**
+   - `search.max_papers`：**最终必须输出 N 篇全部满足条件的论文**（含模块/数据集匹配通过）
    - `search.max_search_pages`：每个搜索源最多翻页数（默认 5，防止无限搜索）
-   - 所有 filter 条件（年份、期刊、模块、数据集、代码）都是 **AND** 关系
+   - 所有 filter 条件（年份、期刊、代码、模块、数据集）都是 **AND** 关系，且都在循环内逐篇判定
 
 ---
 
@@ -48,9 +49,9 @@ config.yaml  →  Step1 读取配置
 
 ---
 
-## Step 3+4+5 — 搜索-筛选-验证循环
+## Step 3+4+5+6 — 搜索-筛选-验证-匹配循环
 
-这是整个工具的核心：**搜索 → 初筛 → 代码验证 → 不够就继续搜**。
+这是整个工具的核心：**搜索 → 初筛 → 代码验证 → 模块/数据集匹配（LLM）→ 不够就继续搜**。
 
 ### 循环逻辑（伪代码）
 
@@ -59,6 +60,7 @@ qualified = []
 page = 1
 source_index = 0
 sources = config.search.sources  # ["semantic_scholar", "dblp", "arxiv"]
+need_llm = modules.include/exclude 或 datasets.include/exclude 任一非空
 
 while len(qualified) < config.search.max_papers and source_index < len(sources):
     source = sources[source_index]
@@ -74,7 +76,9 @@ while len(qualified) < config.search.max_papers and source_index < len(sources):
                 continue   # 不满足 → 丢弃，不保留
             if not code_verification(paper):
                 continue   # 代码不满足 → 丢弃，不保留
-            qualified.append(paper)  # ✅ 全部通过
+            if need_llm and not llm_module_dataset_match(paper):
+                continue   # 模块/数据集不满足 → 丢弃，不保留
+            qualified.append(paper)  # ✅ 全部通过（含模块/数据集）
             if len(qualified) >= max_papers:
                 break
         
@@ -138,13 +142,13 @@ return qualified  # 可能 < max_papers（穷尽所有源后仍不足）
 
 ---
 
-## Step 6 — LLM 深度分析
+### 3.5 模块/数据集匹配（LLM，循环内逐篇执行）
 
-**仅对 Step 3-5 循环中全部通过的论文执行。**
+初筛 + 代码验证通过后，**立即**对这篇论文做模块/数据集匹配，通过才计入 `qualified`，不通过直接丢弃——这样"凑满 `max_papers`"严格等于"`max_papers` 篇全部满足"。
 
-如果 `modules.include` 或 `modules.exclude` 或 `datasets.include` 或 `datasets.exclude` 全为空，可跳过 LLM 分析（无需匹配）。
+如果 `modules.include` / `modules.exclude` / `datasets.include` / `datasets.exclude` **全为空**，跳过本步骤（`need_llm = false`，无需匹配）。
 
-否则，对每篇论文调用 Agent 并行分析：
+否则，对这篇论文调用 LLM/Agent 分析：
 
 ```json
 {
@@ -160,12 +164,12 @@ return qualified  # 可能 < max_papers（穷尽所有源后仍不足）
 ```
 
 **匹配逻辑**：
-- `modules.include` 非空时，论文的 `tech_modules` 必须至少语义匹配其中一项
+- `modules.include` 非空时，论文的 `tech_modules` 必须至少语义匹配其中一项，否则 fail
 - `modules.exclude` 中任何一项被匹配到 → fail
-- `datasets.include` 非空时，`datasets_used` 必须至少包含其中一项
+- `datasets.include` 非空时，`datasets_used` 必须至少包含其中一项，否则 fail
 - `datasets.exclude` 中任何一项被匹配到 → fail
 
-**LLM 阶段判定 fail 的论文也丢弃**，最终结果只包含全部通过的论文。
+**任一条判定 fail 的论文直接丢弃，不计入 `qualified`，并继续搜索下一篇**，直到凑满 `max_papers` 或所有数据源穷尽。
 
 ---
 
@@ -186,7 +190,7 @@ score = citations * 0.3 + (novelty_high:1  medium:0.5  low:0) * 0.3 + (has_code:
 ```markdown
 # 学术论文搜索结果
 > 搜索条件：关键词=..., 年份=..., max_papers=10
-> 搜索了 X 页 Y 个数据源，初筛通过 A 篇，代码验证通过 B 篇，最终全部通过 C 篇
+> 搜索了 X 页 Y 个数据源，初筛通过 A 篇，代码验证通过 B 篇，模块/数据集匹配通过 C 篇，最终全部通过 D 篇
 ```
 
 每篇论文输出完整卡片（标题、作者、摘要、方法、模块、数据集、代码链接）。
@@ -214,4 +218,4 @@ score = citations * 0.3 + (novelty_high:1  medium:0.5  low:0) * 0.3 + (has_code:
 /paper-search
 ```
 
-自动读取 `config.yaml`，执行搜索-筛选-验证循环，直到凑满 `max_papers` 篇全部满足条件的论文。
+自动读取 `config.yaml`，执行搜索-筛选-验证-匹配循环，直到凑满 `max_papers` 篇全部满足条件（含模块/数据集匹配）的论文。

@@ -21,6 +21,10 @@ config.yaml
 # 截图
 *.png
 
+# Node.js 依赖和构建产物
+node_modules/
+dist/
+
 # 系统文件
 .DS_Store
 Thumbs.db

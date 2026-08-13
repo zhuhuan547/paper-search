@@ -1,43 +1,50 @@
+# 默认配置文件 — search-runner 生成临时 config 时的骨架
+# 用户通过 /search-request 输入需求，自动覆盖对应字段
+
 search:
-  keywords:
-    - 寻找喉镜report generation的论文 需要公开 注意是鼻咽喉部位的喉镜数据集
-    - 寻找喉镜报告生成的论文 需要公开 注意是鼻咽喉部位的喉镜数据集
+  keywords: []
   year_range:
-    - 2021
-    - 2026
+  - 2021
+  - 2026
   max_papers: 10
   max_search_pages: 5
   sources:
-    - semantic_scholar
-    - dblp
-    - arxiv
+  - semantic_scholar
+  - dblp
+  - arxiv
   expand_synonyms: true
+
 venue:
   min_ccf_level: null
   include_patterns: []
   exclude_patterns: []
   allow_arxiv_only: true
+
 modules:
   include: []
   exclude: []
   match_mode: semantic
+
 datasets:
   include: []
   exclude: []
+
 code:
   require_open_source: false
   min_stars: 0
   platforms:
-    - github
-    - gitlab
+  - github
+  - gitlab
   min_code_files: 1
+
 output:
   formats:
-    - markdown
-    - csv
-    - bibtex
-  path: D:\Claude_project\search_paper\tasks\req_20260806_203730_dc1e\output
+  - markdown
+  - csv
+  - bibtex
+  path: ./output/search_result
   include_reasoning: true
+
 cache:
   enabled: true
   path: ./cache
