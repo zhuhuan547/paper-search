@@ -10,6 +10,11 @@ export function createTask(query, configOverride = {}) {
   return api.post('/tasks', { query, config_override: configOverride });
 }
 
+/** POST /api/tasks/parse — 解析自然语言，返回配置预览（不创建任务） */
+export function parseQuery(query) {
+  return api.post('/tasks/parse', { query });
+}
+
 /** GET /api/tasks — 获取任务列表 */
 export function listTasks(statusFilter) {
   return api.get('/tasks', { params: statusFilter ? { status: statusFilter } : {} });

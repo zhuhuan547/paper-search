@@ -54,6 +54,21 @@ function deepMerge(base, override) {
   return result;
 }
 
+// ── 解析预览 ─────────────────────────────────────────
+
+/**
+ * 仅解析自然语言，返回结构化配置预览（不创建任务）
+ * 供前端实时展示「我理解你要找什么」，高级选项以解析值为基准
+ * @param {string} query - 用户的自然语言查询
+ * @returns {{ title: string, parsed: object, merged: object }}
+ */
+function previewConfig(query) {
+  const { title, parsed } = parseQuery(query);
+  const defaults = getDefaultConfig();
+  const merged = deepMerge(deepMerge(defaults, parsed), {});
+  return { title, parsed, merged };
+}
+
 // ── 任务 CRUD ────────────────────────────────────────
 
 /**
@@ -164,6 +179,8 @@ function getTask(taskId) {
     },
     papers: [],
     output_files: null,
+    progress: readProgress(taskId),
+    state: readState(taskId),
   };
 
   // 如果已完成，读取论文数据
@@ -278,6 +295,7 @@ function markCompleted(taskId, resultSummary) {
     completed_at: new Date().toISOString(),
     result_summary: resultSummary,
     error: null,
+    stop_requested: false,
   });
 }
 
@@ -286,6 +304,7 @@ function markFailed(taskId, errorMessage) {
     status: 'failed',
     completed_at: new Date().toISOString(),
     error: errorMessage,
+    stop_requested: false,
   });
 }
 
@@ -294,20 +313,43 @@ function markStopped(taskId) {
     status: 'stopped',
     completed_at: new Date().toISOString(),
     error: '用户手动停止',
+    stop_requested: false,
   });
+}
+
+/**
+ * 请求停止任务：写入 stop_requested 标记，由外部消费者在步骤间检测并中止。
+ * 外部消费者模式下后端不 spawn 进程，无法直接 kill，只能通过该标记协作停止。
+ */
+function requestStop(taskId) {
+  return updateMeta(taskId, { stop_requested: true });
+}
+
+/**
+ * 检查任务是否被请求停止（供外部消费者在步骤间调用）
+ */
+function isStopRequested(taskId) {
+  const meta = readMeta(taskId);
+  return !!(meta && meta.stop_requested);
 }
 
 /**
  * 将任务重置为 pending（用于手动重试）
  */
-function resetToPending(taskId) {
+function resetToPending(taskId, opts = {}) {
   updateMeta(taskId, {
     status: 'pending',
     started_at: null,
     completed_at: null,
     error: null,
     result_summary: null,
+    stop_requested: false,
   });
+  // resume=true 时保留 state.json 与进度日志，供断点续跑；否则全新开始。
+  if (!opts.resume) {
+    clearProgress(taskId);
+    clearState(taskId);
+  }
 }
 
 // ── 底层文件操作 ─────────────────────────────────────
@@ -332,6 +374,75 @@ function readMeta(taskId) {
 
 function writeMeta(taskId, meta) {
   fs.writeFileSync(metaPath(taskId), JSON.stringify(meta, null, 2), 'utf-8');
+}
+
+/**
+ * 读取任务的实时进度日志（tasks/{taskId}/progress.log）
+ * 由外部消费者（Claude 会话）在搜索过程中逐步追加，每行一条进度
+ * @returns {string[]} 进度行数组（最新在末尾）
+ */
+function readProgress(taskId) {
+  const p = progressPath(taskId);
+  if (!fs.existsSync(p)) return [];
+  try {
+    const content = fs.readFileSync(p, 'utf-8').replace(/^﻿/, '');
+    return content.split('\n').map((l) => l.replace(/\r$/, '')).filter((l) => l.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 清空任务进度日志（重置/重新执行时调用）
+ */
+function clearProgress(taskId) {
+  try {
+    fs.writeFileSync(progressPath(taskId), '', 'utf-8');
+  } catch { /* ignore */ }
+}
+
+/**
+ * 读取任务状态文件（tasks/{taskId}/state.json），供断点恢复。
+ * 由协调者（当前 Claude Code 会话）在搜索过程中写入；缺失/损坏返回 null。
+ * 剥 BOM 后再 parse，避免 Python utf-8-sig 等写入带 BOM 导致的解析失败。
+ */
+function readState(taskId) {
+  const p = statePath(taskId);
+  if (!fs.existsSync(p)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(p, 'utf-8').replace(/^﻿/, ''));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 原子写入状态文件（临时文件 + rename，UTF-8 无 BOM）。
+ * 单写者约定：只有协调者（或本函数调用方）会写 state.json，避免并发覆盖。
+ */
+function writeState(taskId, state) {
+  const p = statePath(taskId);
+  const tmp = p + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(state, null, 2), 'utf-8');
+  fs.renameSync(tmp, p);
+}
+
+/**
+ * 删除状态文件（重新执行/放弃断点时调用）。
+ */
+function clearState(taskId) {
+  const p = statePath(taskId);
+  if (fs.existsSync(p)) {
+    try { fs.unlinkSync(p); } catch { /* ignore */ }
+  }
+}
+
+function progressPath(taskId) {
+  return path.join(TASKS_DIR, taskId, 'progress.log');
+}
+
+function statePath(taskId) {
+  return path.join(TASKS_DIR, taskId, 'state.json');
 }
 
 function updateMeta(taskId, partial) {
@@ -545,10 +656,18 @@ module.exports = {
   markCompleted,
   markFailed,
   markStopped,
+  requestStop,
+  isStopRequested,
   resetToPending,
   activateConfig,
   restoreConfig,
   extractResultSummary,
+  previewConfig,
+  readProgress,
+  clearProgress,
+  readState,
+  writeState,
+  clearState,
   TASKS_DIR,
   PROJECT_ROOT,
 };

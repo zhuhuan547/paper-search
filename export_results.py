@@ -11,6 +11,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# Windows 控制台默认 GBK，无法输出 emoji/中文，重设为 UTF-8（仅影响 print，不影响文件写入）
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, 'reconfigure'):
+        _stream.reconfigure(encoding='utf-8')
+
 # ---- 配置 ----
 CACHE_FILE = "cache/paper_analysis.json"
 OUTPUT_DIR = "output"
@@ -85,7 +90,7 @@ def export_markdown(papers: list[dict], output_path: str, include_reasoning: boo
         citations = p.get("citations", 0)
         arxiv = f"[✅](https://arxiv.org/abs/{p['arxiv_id']})" if p.get("arxiv_id") else "❌"
         code = f"[✅]({p.get('repo_url', '')}) ⭐{p.get('stars', 0)}" if p.get("has_code") else "❌"
-            lines.append(f"| {i} | {title_short} | {venue} | {year} | {citations} | {arxiv} | {code} | ✅ |")
+        lines.append(f"| {i} | {title_short} | {venue} | {year} | {citations} | {arxiv} | {code} | ✅ |")
 
     lines.append("")
 

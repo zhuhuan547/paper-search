@@ -48,6 +48,27 @@ function createTask(req, res) {
   }
 }
 
+// ── POST /api/parse ──────────────────────────────────
+
+function parseQuery(req, res) {
+  try {
+    const { query } = req.body;
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({
+        error: '缺少 query 字段',
+        message: '请提供论文搜索需求的自然语言描述',
+      });
+    }
+
+    const preview = taskService.previewConfig(query.trim());
+    res.json(preview);
+  } catch (err) {
+    console.error('[api] parseQuery error:', err);
+    res.status(500).json({ error: '解析失败', message: err.message });
+  }
+}
+
 // ── GET /api/tasks ───────────────────────────────────
 
 function listTasks(req, res) {
@@ -158,12 +179,12 @@ function retryTask(req, res) {
       });
     }
 
-    taskService.resetToPending(id);
+    taskService.resetToPending(id, { resume: true });
 
     res.json({
       success: true,
       task_id: id,
-      message: '任务已重置，消费者将自动重试',
+      message: '任务已重置，消费者将从断点恢复重试',
       consumer_status: queueConsumer.getStatus(),
     });
   } catch (err) {
@@ -192,24 +213,28 @@ function stopTask(req, res) {
       });
     }
 
-    // 检查是否正在被消费者执行
     const consumerStatus = queueConsumer.getStatus();
-    if (consumerStatus.currentTaskId !== id) {
+
+    // 老模式：后端 spawn 了子进程，可直接 kill
+    if (consumerStatus.currentTaskId === id) {
+      const stopped = queueConsumer.stopCurrentTask();
       return res.json({
-        success: false,
+        success: stopped,
         task_id: id,
-        message: '任务状态为 running 但未被消费者执行，正在修复状态',
+        message: stopped ? '任务已停止' : '未能停止任务（无可停止的进程）',
         consumer_status: consumerStatus,
       });
     }
 
-    const stopped = queueConsumer.stopCurrentTask();
+    // 外部消费者模式：后端不 spawn 进程，无法直接 kill。
+    // 改为写入 stop_requested 标记，由消费者（Claude 会话）在步骤间检测并中止。
+    taskService.requestStop(id);
 
     res.json({
-      success: stopped,
+      success: true,
       task_id: id,
-      message: stopped ? '任务已停止' : '未能停止任务（无可停止的进程）',
-      consumer_status: queueConsumer.getStatus(),
+      message: '已请求停止，消费者将在当前步骤完成后停止该任务',
+      consumer_status: consumerStatus,
     });
   } catch (err) {
     console.error('[api] stopTask error:', err);
@@ -262,6 +287,7 @@ function getResultFile(req, res) {
 
 module.exports = {
   createTask,
+  parseQuery,
   listTasks,
   getTask,
   deleteTask,

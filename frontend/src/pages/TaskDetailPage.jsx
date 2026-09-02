@@ -5,6 +5,7 @@ import TaskStatusBadge from '../components/TaskStatusBadge';
 import PaperSummaryTable from '../components/PaperSummaryTable';
 import MarkdownViewer from '../components/MarkdownViewer';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ProgressLog from '../components/ProgressLog';
 
 const TABS = [
   { key: 'summary', label: '📊 汇总' },
@@ -39,9 +40,9 @@ export default function TaskDetailPage() {
     fetchTask();
   }, [fetchTask]);
 
-  // 如果正在运行，每 3 秒轮询
+  // pending（等消费者接走）或 running 时每 3 秒轮询，自动刷新状态，无需手动刷新
   useEffect(() => {
-    if (!data || data.task.status !== 'running') return;
+    if (!data || !['pending', 'running'].includes(data.task.status)) return;
     const timer = setInterval(fetchTask, 3000);
     return () => clearInterval(timer);
   }, [data?.task?.status, fetchTask]);
@@ -113,6 +114,7 @@ export default function TaskDetailPage() {
   }
 
   const { task, papers, output_files } = data;
+  const progress = data.progress || [];
 
   return (
     <div>
@@ -163,6 +165,13 @@ export default function TaskDetailPage() {
         </div>
       </div>
 
+      {/* Pending hint */}
+      {task.status === 'pending' && (
+        <div className="card" style={{ textAlign: 'center', color: 'var(--gray-500)', padding: '12px 16px' }}>
+          ⏳ 任务已加入队列，消费者将自动开始搜索（最多约 1 分钟），页面会自动刷新状态
+        </div>
+      )}
+
       {/* Search conditions summary */}
       {task.status === 'pending' && task.config && (
         <div className="card">
@@ -182,7 +191,18 @@ export default function TaskDetailPage() {
 
       {/* Running state */}
       {task.status === 'running' && (
-        <LoadingSpinner text="正在搜索中，请稍候...（搜索可能需要 3-5 分钟）" />
+        <>
+          <LoadingSpinner text="正在搜索中，请稍候...（搜索可能需要 3-5 分钟）" />
+          <ProgressLog lines={progress} />
+        </>
+      )}
+
+      {/* 已结束任务也可回看搜索过程 */}
+      {(task.status === 'completed' || task.status === 'failed' || task.status === 'stopped') && progress.length > 0 && (
+        <details style={{ marginTop: 16 }}>
+          <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--gray-500)' }}>查看搜索过程</summary>
+          <ProgressLog lines={progress} />
+        </details>
       )}
 
       {/* Failed state */}

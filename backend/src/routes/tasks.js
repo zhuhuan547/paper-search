@@ -10,6 +10,9 @@ const router = Router();
 // POST /api/tasks — 创建搜索任务
 router.post('/', ctrl.createTask);
 
+// POST /api/tasks/parse — 解析自然语言，返回配置预览（不创建任务）
+router.post('/parse', ctrl.parseQuery);
+
 // GET /api/tasks — 列出所有任务
 router.get('/', ctrl.listTasks);
 

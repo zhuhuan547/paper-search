@@ -205,8 +205,8 @@ function extractCodeRequirements(text) {
     min_stars: 0,
   };
 
-  // 要求开源
-  if (/必须.*代码|要.*开源|代码.*开源|开源.*代码|有.*[Gg]it[Hh]ub|开源.*优先|代码.*必须/.test(text)) {
+  // 要求开源/公开代码（开源、公开代码、发布代码、公布代码、有 github 等）
+  if (/必须.*代码|要.*(?:开源|公开|发布|公布)|代码.*(?:开源|公开|发布)|(?:开源|公开|发布|公布).*代码|有.*[Gg]it[Hh]ub|(?:开源|公开).*优先|代码.*必须/.test(text)) {
     result.require_open_source = true;
   }
   if (/不用.*代码|不需要.*代码|没代码.*行|无需.*代码|不要求.*代码/.test(text)) {
@@ -234,15 +234,20 @@ function extractCodeRequirements(text) {
 // ── 目标数量解析 ──────────────────────────────────────
 
 function extractMaxPapers(text) {
-  // "找N篇" "来N篇" "N篇左右" "top N" "N papers"
+  // "找N篇" "来N篇" "要N篇" "搜N篇" "爬N篇" "下载N篇"
   const match = text.match(/(?:找|来|要|搜|爬|下载?)\s*(\d+)\s*篇/);
   if (match) return parseInt(match[1]);
 
+  // "论文N篇" "文章N篇"（数量在"论文/文章"之后，如「胸片报告生成论文3篇」）
+  const postMatch = text.match(/(?:论文|文章)\s*(\d+)\s*篇/);
+  if (postMatch) return parseInt(postMatch[1]);
+
+  // "N篇论文" "N篇文章" "N篇左右" 及 单独出现的 "N篇"
+  const numMatch = text.match(/(\d+)\s*篇\s*(?:论文|文章|左右|以内|上下)?/);
+  if (numMatch) return parseInt(numMatch[1]);
+
   const topMatch = text.match(/[Tt]op\s*(\d+)/);
   if (topMatch) return parseInt(topMatch[1]);
-
-  const numMatch = text.match(/(\d+)\s*篇\s*(?:论文|文章)/);
-  if (numMatch) return parseInt(numMatch[1]);
 
   // "越多越好" "尽量多"
   if (/越多越好|尽量多|尽可能多|多多益善/.test(text)) return 20;

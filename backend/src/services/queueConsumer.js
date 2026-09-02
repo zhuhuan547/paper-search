@@ -34,6 +34,11 @@ let currentChildProcess = null; // 当前 spawn 子进程引用（用于停止�
  */
 function start() {
   if (isRunning) return;
+  // 外部消费者模式：由当前 Claude Code 会话接管队列消费，后端仅提供 API，不自动 spawn 任务
+  if (process.env.EXTERNAL_CONSUMER === '1') {
+    console.log('[queue-consumer] 外部消费者模式：由 Claude Code 会话接管队列，后端不自动执行任务');
+    return;
+  }
   isRunning = true;
   console.log('[queue-consumer] 队列消费者已启动，轮询间隔:', POLL_INTERVAL_MS / 1000, 's');
   // 立即执行一次
